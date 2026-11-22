@@ -218,7 +218,9 @@
             isPlaying = false;
             document.getElementById("playBtn").innerText = "▶️";
         } else {
-            if (!audio.src) audio.src = ayahsData.at(currentAyahIndex).audioUrl;
+            if (!audio.src || !audio.src.endsWith(".mp3")) {
+                audio.src = ayahsData.at(currentAyahIndex).audioUrl;
+            }
             audio.play();
             isPlaying = true;
             document.getElementById("playBtn").innerText = "⏸️";
@@ -227,7 +229,7 @@
 
     function stopAudio() {
         audio.pause();
-        audio.src = "";
+        audio.removeAttribute("src");
         isPlaying = false;
         document.getElementById("playBtn").innerText = "▶️";
     }
