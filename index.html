@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Kur'an-ı Kerim • Tecvidli Tilavet</title>
+    <style>
+        :root { --bg: #071310; --panel: #0d211c; --gold: #d4af37; --emerald: #10b981; --text: #f3f4f6; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Roboto, sans-serif; }
+        html, body { width: 100%; height: 100dvh; background: var(--bg); color: var(--text); display: flex; flex-direction: column; overflow: hidden; }
+        header { background: var(--panel); padding: 10px 12px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid rgba(212,175,55,0.3); }
+        .title { font-size: 16px; font-weight: 900; color: var(--gold); letter-spacing: 0.5px; }
+        .top-btns { display: flex; gap: 6px; }
+        .btn { background: #132e27; color: #fff; border: 1px solid rgba(212,175,55,0.4); padding: 6px 9px; border-radius: 8px; font-size: 11px; font-weight: 700; cursor: pointer; }
+        .btn.gold { background: var(--gold); color: #071310; border: none; }
+        .controls { background: #0a1915; padding: 8px 12px; display: flex; gap: 6px; border-bottom: 1px solid rgba(255,255,255,0.06); }
+        .controls select, .controls input { background: #132e27; color: #fff; border: 1px solid rgba(212,175,55,0.3); padding: 7px; border-radius: 8px; font-size: 12px; outline: none; flex: 1; min-width: 0; }
+        .player-bar { background: linear-gradient(90deg, #0d211c, #132e27); padding: 8px 12px; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid rgba(212,175,55,0.35); }
+        .play-btn { background: var(--gold); color: #071310; border: none; width: 38px; height: 38px; border-radius: 50%; font-size: 16px; font-weight: 900; cursor: pointer; flex-shrink: 0; }
+        .ayah-list { flex: 1; overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 12px; }
+        .ayah-card { background: var(--panel); border: 1px solid rgba(212,175,55,0.18); border-radius: 14px; padding: 14px; transition: 0.25s; }
+        .ayah-card.active { border: 2px solid var(--gold); background: #133129; box-shadow: 0 0 20px rgba(212,175,55,0.25); }
+        .ayah-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; font-size: 11px; color: var(--gold); font-weight: 700; }
+        .arabic { font-size: 26px; line-height: 2.1; text-align: right; direction: rtl; color: #fff; font-family: 'Amiri', 'Traditional Arabic', serif; margin-bottom: 10px; }
+        .translit { font-size: 13px; color: #6ee7b7; font-style: italic; margin-bottom: 6px; line-height: 1.5; }
+        .meal { font-size: 14px; color: #e5e7eb; line-height: 1.6; }
+        .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.88); z-index: 99; align-items: center; justify-content: center; padding: 16px; }
+        .modal-card { background: var(--panel); border: 1px solid var(--gold); border-radius: 16px; padding: 20px; width: 100%; max-width: 380px; text-align: center; }
+        .zikir-circle { width: 140px; height: 140px; border-radius: 50%; background: radial-gradient(circle, #10b981, #065f46); border: 3px solid var(--gold); color: #fff; font-size: 36px; font-weight: 900; margin: 16px auto; display: flex; align-items: center; justify-content: center; cursor: pointer; user-select: none; }
+    </style>
+</head>
+<body>
+<header>
+    <div class="title">🕌 KUR'AN-I KERİM</div>
+    <div class="top-btns">
+        <button class="btn" onclick="goBookmark()">🔖 Ayraç</button>
+        <button class="btn" onclick="openZikir()">📿 Zikir</button>
+        <button class="btn gold" onclick="openPrayerTimes()">🕌 Vakitler</button>
+    </div>
+</header>
+
+<div class="controls">
+    <select id="surahSelect" onchange="loadSurah(this.value)"></select>
+    <select id="reciterSelect" onchange="changeReciter(this.value)">
+        <option value="ar.abdulbasitmurattal">🎙️ Abdülbasit Abdüssamed (Tecvidli)</option>
+        <option value="ar.alafasy">🎙️ Mishary Rashid Alafasy</option>
+        <option value="ar.mahermuaiqly">🎙️ Maher Al Muaiqly</option>
+        <option value="ar.saoodshuraym">🎙️ Suud eş-Şureym</option>
+    </select>
+</div>
+
+<div class="player-bar">
+    <button class="play-btn" id="playBtn" onclick="togglePlay()">▶️</button>
+    <div style="flex:1; min-width:0;">
+        <div id="nowPlayingTitle" style="font-size:13px; font-weight:800; color:#d4af37; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">Fatiha Suresi • 1. Ayet</div>
+        <div style="font-size:11px; color:#9ca3af;">Şeyh Abdülbasit Abdüssamed (Ayet Ayet Takip)</div>
+    </div>
+    <button class="btn" onclick="toggleTranslit()">Okunuş</button>
+</div>
+
+<div class="ayah-list" id="ayahList"></div>
+<audio id="quranAudio"></audio>
+
+<div class="modal" id="zikirModal">
+    <div class="modal-card">
+        <h3 style="color:var(--gold);">📿 Dijital Zikirmatik</h3>
+        <div class="zikir-circle" id="zikirCount" onclick="incZikir()">0</div>
+        <div style="display:flex; gap:8px; justify-content:center;">
+            <button class="btn" onclick="resetZikir()">Sıfırla</button>
+            <button class="btn gold" onclick="document.getElementById('zikirModal').style.display='none'">Kapat</button>
+        </div>
+    </div>
+</div>
+
+<div class="modal" id="prayerModal">
+    <div class="modal-card">
+        <h3 style="color:var(--gold); margin-bottom:10px;">🕌 İstanbul Namaz Vakitleri</h3>
+        <div id="prayerContent" style="font-size:14px; line-height:2; color:#e5e7eb; margin-bottom:12px;">Yükleniyor...</div>
+        <button class="btn gold" onclick="document.getElementById('prayerModal').style.display='none'">Kapat</button>
+    </div>
+</div>
+<script>
+    const surahNamesTR = [
+        "1. Fâtiha","2. Bakara","3. Âl-i İmrân","4. Nisâ","5. Mâide","6. En'âm","7. A'râf","8. Enfâl","9. Tevbe","10. Yûnus",
+        "11. Hûd","12. Yûsuf","13. Ra'd","14. İbrâhîm","15. Hicr","16. Nahl","17. İsrâ","18. Kehf","19. Meryem","20. Tâhâ",
+        "21. Enbiyâ","22. Hac","23. Mü'minûn","24. Nûr","25. Furkân","26. Şuarâ","27. Neml","28. Kasas","29. Ankebût","30. Rûm",
+        "31. Lokmân","32. Secde","33. Ahzâb","34. Sebe'","35. Fâtır","36. Yâsîn","37. Sâffât","38. Sâd","39. Zümer","40. Mü'min",
+        "41. Fussilet","42. Şûrâ","43. Zuhruf","44. Duhân","45. Câsiye","46. Ahkâf","47. Muhammed","48. Fetih","49. Hucurât","50. Kâf",
+        "51. Zâriyât","52. Tûr","53. Necm","54. Kamer","55. Rahmân","56. Vâkıa","57. Hadîd","58. Mücâdele","59. Haşr","60. Mümtehine",
+        "61. Saf","62. Cum'a","63. Münâfikûn","64. Tegâbün","65. Talâk","66. Tahrîm","67. Mülk","68. Kalem","69. Hâkka","70. Meâric",
+        "71. Nûh","72. Cin","73. Müzzemmil","74. Müddessir","75. Kıyâme","76. İnsân","77. Mürselât","78. Nebe'","79. Nâziât","80. Abese",
+        "81. Tekvîr","82. İnfitâr","83. Mutaffifîn","84. İnşikâk","85. Burûc","86. Târık","87. A'lâ","88. Gâşiye","89. Fecr","90. Beled",
+        "91. Şems","92. Leyl","93. Duhâ","94. İnşirâh","95. Tîn","96. Alak","97. Kadir","98. Beyyine","99. Zilzâl","100. Âdiyât",
+        "101. Kâria","102. Tekâsür","103. Asr","104. Hümeze","105. Fîl","106. Kureyş","107. Mâûn","108. Kevser","109. Kâfirûn","110. Nasr",
+        "111. Tebbet","112. İhlâs","113. Felak","114. Nâs"
+    ];
+
+    let currentSurah = 1;
+    let currentReciter = "ar.abdulbasitmurattal";
+    let ayahsData = [];
+    let currentAyahIndex = 0;
+    let isPlaying = false;
+    let showTranslit = true;
+    let zikirVal = Number(localStorage.getItem("quran_zikir") || 0);
+    const audio = document.getElementById("quranAudio");
+
+    function initSurahSelect() {
+        const sel = document.getElementById("surahSelect");
+        surahNamesTR.forEach((name, idx) => {
+            const opt = document.createElement("option");
+            opt.value = idx + 1;
+            opt.textContent = name;
+            sel.appendChild(opt);
+        });
+    }
+
+    async function loadSurah(num, startAyah = 0) {
+        currentSurah = Number(num);
+        document.getElementById("surahSelect").value = currentSurah;
+        stopAudio();
+        const list = document.getElementById("ayahList");
+        list.innerHTML = `<div style="text-align:center; padding:30px; color:#d4af37;">🕌 Sure yükleniyor...</div>`;
+
+        try {
+            const res = await fetch(`https://alquran.cloud{currentSurah}/editions/quran-uthmani,tr.transliteration,tr.diyanet,${currentReciter}`);
+            const json = await res.json();
+            const arList = json.data[0].ayahs;
+            const trOkunus = json.data[1].ayahs;
+            const trMeal = json.data[2].ayahs;
+            const audioList = json.data[3].ayahs;
+
+            ayahsData = arList.map((a, i) => ({
+                num: a.numberInSurah,
+                arabic: a.text,
+                translit: trOkunus[i]?.text || "",
+                meal: trMeal[i]?.text || "",
+                audioUrl: audioList[i]?.audio || ""
+            }));
+
+            renderAyahs();
+            if (startAyah > 0 && ayahsData[startAyah]) {
+                selectAyah(startAyah, false);
+            } else {
+                updateNowPlaying(0);
+            }
+        } catch (e) {
+            list.innerHTML = `<div style="text-align:center; padding:30px; color:#ef4444;">Bağlantı hatası oluştu, internetini kontrol et.</div>`;
+        }
+    }
+
+    function renderAyahs() {
+        const list = document.getElementById("ayahList");
+        list.innerHTML = "";
+        ayahsData.forEach((a, idx) => {
+            const card = document.createElement("div");
+            card.className = "ayah-card" + (idx === currentAyahIndex ? " active" : "");
+            card.id = "ayah_" + idx;
+            card.innerHTML = `
+                <div class="ayah-head">
+                    <span>${surahNamesTR[currentSurah - 1]} • ${a.num}. Ayet</span>
+                    <div style="display:flex; gap:8px;">
+                        <span style="cursor:pointer;" onclick="selectAyah(${idx}, true)">▶️ Dinle</span>
+                        <span style="cursor:pointer;" onclick="saveBookmark(${idx})">🔖 Kaydet</span>
+                    </div>
+                </div>
+                <div class="arabic">${a.arabic}</div>
+                ${showTranslit ? `<div class="translit">${a.translit}</div>` : ""}
+                <div class="meal">${a.meal}</div>
+            `;
+            list.appendChild(card);
+        });
+    }
+
+    function toggleTranslit() {
+        showTranslit = !showTranslit;
+        renderAyahs();
+    }
+
+    function changeReciter(rec) {
+        currentReciter = rec;
+        loadSurah(currentSurah, currentAyahIndex);
+    }
+
+    function updateNowPlaying(idx) {
+        currentAyahIndex = idx;
+        document.querySelectorAll(".ayah-card").forEach((c, i) => {
+            c.classList.toggle("active", i === idx);
+        });
+        const activeEl = document.getElementById("ayah_" + idx);
+        if (activeEl) activeEl.scrollIntoView({ behavior: "smooth", block: "center" });
+        const a = ayahsData[idx];
+        if (a) {
+            document.getElementById("nowPlayingTitle").innerText = `${surahNamesTR[currentSurah - 1]} • ${a.num}. Ayet`;
+        }
+    }
+
+    function selectAyah(idx, autoPlay = true) {
+        updateNowPlaying(idx);
+        if (autoPlay && ayahsData[idx]?.audioUrl) {
+            audio.src = ayahsData[idx].audioUrl;
+            audio.play();
+            isPlaying = true;
+            document.getElementById("playBtn").innerText = "⏸️";
+        }
+    }
+
+    function togglePlay() {
+        if (!ayahsData.length) return;
+        if (isPlaying) {
+            audio.pause();
+            isPlaying = false;
+            document.getElementById("playBtn").innerText = "▶️";
+        } else {
+            if (!audio.src) audio.src = ayahsData[currentAyahIndex].audioUrl;
+            audio.play();
+            isPlaying = true;
+            document.getElementById("playBtn").innerText = "⏸️";
+        }
+    }
+
+    function stopAudio() {
+        audio.pause();
+        audio.src = "";
+        isPlaying = false;
+        document.getElementById("playBtn").innerText = "▶️";
+    }
+
+    audio.onended = () => {
+        if (currentAyahIndex + 1 < ayahsData.length) {
+            selectAyah(currentAyahIndex + 1, true);
+        } else if (currentSurah < 114) {
+            loadSurah(currentSurah + 1, 0);
+        } else {
+            stopAudio();
+        }
+    };
+
+    function saveBookmark(idx) {
+        localStorage.setItem("quran_bm", JSON.stringify({ surah: currentSurah, ayah: idx }));
+        alert(`🔖 ${surahNamesTR[currentSurah - 1]} ${idx + 1}. Ayet ayraç olarak kaydedildi.`);
+    }
+
+    function goBookmark() {
+        const bm = JSON.parse(localStorage.getItem("quran_bm") || "null");
+        if (!bm) { alert("Henüz kayıtlı bir ayraç yok. Ayetin sağ üstündeki 🔖 Kaydet tuşuna basabilirsin."); return; }
+        loadSurah(bm.surah, bm.ayah);
+    }
+
+    function openZikir() {
+        document.getElementById("zikirCount").innerText = zikirVal;
+        document.getElementById("zikirModal").style.display = "flex";
+    }
+    function incZikir() {
+        zikirVal++;
+        localStorage.setItem("quran_zikir", zikirVal);
+        document.getElementById("zikirCount").innerText = zikirVal;
+        if (navigator.vibrate) navigator.vibrate(35);
+    }
+    function resetZikir() {
+        zikirVal = 0;
+        localStorage.setItem("quran_zikir", 0);
+        document.getElementById("zikirCount").innerText = 0;
+    }
+
+    async function openPrayerTimes() {
+        document.getElementById("prayerModal").style.display = "flex";
+        const box = document.getElementById("prayerContent");
+        box.innerText = "İstanbul vakitleri alınıyor...";
+        try {
+            const res = await fetch("https://aladhan.com");
+            const data = await res.json();
+            const t = data.data.timings;
+            box.innerHTML = `
+                <b>İmsak:</b> ${t.Fajr} &nbsp;|&nbsp; <b>Güneş:</b> ${t.Sunrise}<br>
+                <b>Öğle:</b> ${t.Dhuhr} &nbsp;|&nbsp; <b>İkindi:</b> ${t.Asr}<br>
+                <b>Akşam:</b> ${t.Maghrib} &nbsp;|&nbsp; <b>Yatsı:</b> ${t.Isha}
+            `;
+        } catch (e) {
+            box.innerText = "Vakitler şu an alınamadı.";
+        }
+    }
+
+    initSurahSelect();
+    loadSurah(1);
+</script>
+</body>
+</html>
