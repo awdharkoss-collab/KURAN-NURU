@@ -42,10 +42,11 @@
 <div class="controls">
     <select id="surahSelect" onchange="loadSurah(this.value)"></select>
     <select id="reciterSelect" onchange="changeReciter(this.value)">
-        <option value="ar.abdulbasitmurattal">🎙️ Abdülbasit Abdüssamed (Tecvidli Tilavet)</option>
-        <option value="ar.husary">🎙️ Mahmud Halil el-Husari (Ağır Tecvid)</option>
-        <option value="ar.alafasy">🎙️ Mishary Rashid Alafasy</option>
-        <option value="ar.mahermuaiqly">🎙️ Maher Al Muaiqly</option>
+        <option value="Abdul_Basit_Murattal_192kbps">🎙️ Abdülbasit Abdüssamed (Tecvidli Tilavet)</option>
+        <option value="Abdul_Basit_Mujawwad_128kbps">🎙️ Abdülbasit Abdüssamed (Ağır Tecvid / Mücevved)</option>
+        <option value="Alafasy_128kbps">🎙️ Mishary Rashid Alafasy</option>
+        <option value="MaherAlMuaiqly128kbps">🎙️ Maher Al Muaiqly</option>
+        <option value="Husary_128kbps">🎙️ Mahmud Halil el-Husari</option>
     </select>
 </div>
 
@@ -96,7 +97,7 @@
     ];
 
     let currentSurah = 1;
-    let currentReciter = "ar.abdulbasitmurattal";
+    let currentReciter = "Abdul_Basit_Murattal_192kbps";
     let ayahsData = [];
     let currentAyahIndex = 0;
     let isPlaying = false;
@@ -123,24 +124,27 @@
 
         try {
             const apiUrl = atob("aHR0cHM6Ly9hcGkuYWxxdXJhbi5jbG91ZC92MS9zdXJhaC8=");
-            const audioCdn = atob("aHR0cHM6Ly9jZG4uaXNsYW1pYy5uZXR3b3JrL3F1cmFuL2F1ZGlvLzEyOC8=");
-            const res = await fetch(`${apiUrl}${currentSurah}/editions/quran-uthmani,tr.transliteration,tr.diyanet,${currentReciter}`);
+            const audioHost = atob("aHR0cHM6Ly9ldmVyeWF5YWguY29tL2RhdGEv");
+            const res = await fetch(`${apiUrl}${currentSurah}/editions/quran-uthmani,tr.transliteration,tr.diyanet`);
             const json = await res.json();
-            const arList = json.data[0].ayahs;
-            const trOkunus = json.data[1].ayahs;
-            const trMeal = json.data[2].ayahs;
-            const audioList = json.data[3]?.ayahs || [];
+            const editions = Array.isArray(json.data) ? json.data : [];
+            const arList = editions.at(0)?.ayahs || [];
+            const trOkunus = editions.at(1)?.ayahs || [];
+            const trMeal = editions.at(2)?.ayahs || [];
+
+            const pad3 = (n) => String(n).padStart(3, "0");
+            const sCode = pad3(currentSurah);
 
             ayahsData = arList.map((a, i) => ({
                 num: a.numberInSurah,
                 arabic: a.text,
-                translit: trOkunus[i]?.text || "",
-                meal: trMeal[i]?.text || "",
-                audioUrl: audioList[i]?.audio || `${audioCdn}${currentReciter}/${a.number}.mp3`
+                translit: trOkunus.at(i)?.text || "",
+                meal: trMeal.at(i)?.text || "",
+                audioUrl: `${audioHost}${currentReciter}/${sCode}${pad3(a.numberInSurah)}.mp3`
             }));
 
             renderAyahs();
-            if (startAyah > 0 && ayahsData[startAyah]) {
+            if (startAyah > 0 && ayahsData.at(startAyah)) {
                 selectAyah(startAyah, false);
             } else {
                 updateNowPlaying(0);
@@ -190,7 +194,7 @@
         });
         const activeEl = document.getElementById("ayah_" + idx);
         if (activeEl) activeEl.scrollIntoView({ behavior: "smooth", block: "center" });
-        const a = ayahsData[idx];
+        const a = ayahsData.at(idx);
         if (a) {
             document.getElementById("nowPlayingTitle").innerText = `${surahNamesTR[currentSurah - 1]} • ${a.num}. Ayet`;
         }
@@ -198,8 +202,9 @@
 
     function selectAyah(idx, autoPlay = true) {
         updateNowPlaying(idx);
-        if (autoPlay && ayahsData[idx]?.audioUrl) {
-            audio.src = ayahsData[idx].audioUrl;
+        const target = ayahsData.at(idx);
+        if (autoPlay && target?.audioUrl) {
+            audio.src = target.audioUrl;
             audio.play();
             isPlaying = true;
             document.getElementById("playBtn").innerText = "⏸️";
@@ -213,7 +218,7 @@
             isPlaying = false;
             document.getElementById("playBtn").innerText = "▶️";
         } else {
-            if (!audio.src) audio.src = ayahsData[currentAyahIndex].audioUrl;
+            if (!audio.src) audio.src = ayahsData.at(currentAyahIndex).audioUrl;
             audio.play();
             isPlaying = true;
             document.getElementById("playBtn").innerText = "⏸️";
