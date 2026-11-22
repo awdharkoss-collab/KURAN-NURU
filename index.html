@@ -42,8 +42,8 @@
 <div class="controls">
     <select id="surahSelect" onchange="loadSurah(this.value)"></select>
     <select id="reciterSelect" onchange="changeReciter(this.value)">
-        <option value="ar.abdulsamad">🎙️ Abdülbasit Abdüssamed (Ağır Tecvidli)</option>
-        <option value="ar.abdulbasitmurattal">🎙️ Abdülbasit Abdüssamed (Murattal)</option>
+        <option value="ar.abdulbasitmurattal">🎙️ Abdülbasit Abdüssamed (Tecvidli Tilavet)</option>
+        <option value="ar.husary">🎙️ Mahmud Halil el-Husari (Ağır Tecvid)</option>
         <option value="ar.alafasy">🎙️ Mishary Rashid Alafasy</option>
         <option value="ar.mahermuaiqly">🎙️ Maher Al Muaiqly</option>
     </select>
@@ -59,7 +59,7 @@
 </div>
 
 <div class="ayah-list" id="ayahList"></div>
-<audio id="quranAudio"></audio>
+<audio id="quranAudio" preload="auto"></audio>
 
 <div class="modal" id="zikirModal">
     <div class="modal-card">
@@ -96,7 +96,7 @@
     ];
 
     let currentSurah = 1;
-    let currentReciter = "ar.abdulsamad";
+    let currentReciter = "ar.abdulbasitmurattal";
     let ayahsData = [];
     let currentAyahIndex = 0;
     let isPlaying = false;
@@ -123,19 +123,20 @@
 
         try {
             const apiUrl = atob("aHR0cHM6Ly9hcGkuYWxxdXJhbi5jbG91ZC92MS9zdXJhaC8=");
+            const audioCdn = atob("aHR0cHM6Ly9jZG4uaXNsYW1pYy5uZXR3b3JrL3F1cmFuL2F1ZGlvLzEyOC8=");
             const res = await fetch(`${apiUrl}${currentSurah}/editions/quran-uthmani,tr.transliteration,tr.diyanet,${currentReciter}`);
             const json = await res.json();
             const arList = json.data[0].ayahs;
             const trOkunus = json.data[1].ayahs;
             const trMeal = json.data[2].ayahs;
-            const audioList = json.data[3].ayahs;
+            const audioList = json.data[3]?.ayahs || [];
 
             ayahsData = arList.map((a, i) => ({
                 num: a.numberInSurah,
                 arabic: a.text,
                 translit: trOkunus[i]?.text || "",
                 meal: trMeal[i]?.text || "",
-                audioUrl: audioList[i]?.audio || ""
+                audioUrl: audioList[i]?.audio || `${audioCdn}${currentReciter}/${a.number}.mp3`
             }));
 
             renderAyahs();
